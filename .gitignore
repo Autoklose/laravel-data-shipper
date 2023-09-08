@@ -2,6 +2,10 @@
 node_modules/
 npm-debug.log
 yarn-error.log
+.editorconfig
+.idea/
+phpstan-baseline.neon
+phpstan.neon.dist
 
 # Laravel 4 specific
 bootstrap/compiled.php
@@ -21,3 +25,6 @@ Homestead.yaml
 Homestead.json
 /.vagrant
 .phpunit.result.cache
+docker/
+docker-compose.base.yml
+docker-compose.yml

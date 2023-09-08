@@ -1,0 +1,24 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up()
+    {
+        Schema::create('test_models', function (Blueprint $table) {
+            $table->id();
+            $table->string('string_field');
+            $table->text('text_field');
+            $table->integer('integer_field');
+            $table->float('float_field');
+            $table->boolean('boolean_field');
+            $table->timestamp('timestamp_field');
+            $table->json('json_field');
+
+            $table->timestamps();
+        });
+    }
+};
