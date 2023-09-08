@@ -42,7 +42,7 @@ return [
 
 In order for updates/changes passed to DataShipper to be acted upon, you must add the following command to your Laravel project's scheduler:
 
-```
+```php
 protected function schedule(Schedule $schedule)
 {
   // ...
@@ -53,7 +53,7 @@ protected function schedule(Schedule $schedule)
 
 All models that are passed through Data Shipper must use the HasDataSubscriber trait.
 
-```
+```php
 use Illuminate\Database\Eloquent\Model;
 use Autoklose\DataShipper\Traits\HasDataSubscribers;
 
@@ -72,7 +72,7 @@ Data Shipper provides support to automatically detect changes to a model and add
 
 However, you must push the model before saving the model instance.
 
-```
+```php
 $record->foo = 'bar';
 DataShipper::pushModel($record);
 
@@ -81,7 +81,7 @@ $record->save();
 
 In cases where you only want certain fields to be written to the shipment queue, you can specifiy what columns should be observed.
 
-```
+```php
 $record->foo = 'bar';
 $record->bar = 'foo';
 
@@ -95,7 +95,7 @@ $record->save();
 In some cases you may want to provide a custom made array of data that should be passed to data subscribers.
 
 In order to do this, provide the class of the model the changes are related to, an array of changes and the identifier for the model you are applying the changes to.
-```
+```php
 DataShipper::push(Record::class, ['text_field' => 'changed text'], $record->key());
 ```
 
@@ -104,7 +104,7 @@ If you have a large set of changes you want to provide to subscribers you can do
 
 You can provide an array of changes, however each array item must have an identifier.
 
-```
+```php
 $changes = [
   ['id' => 1, 'text_field' => 'change 1'],
   ['id' => 2, 'text_field' => 'change 2'],
@@ -116,7 +116,7 @@ DataShipper::pushMany(Record::class, $changes, 'id');
 ### Renaming Columns per Subscriber
 In some subscribers you may have a column named differently than you do than in your primary data source. You can easily remap these columns in your changes by adding a column map to your model
 
-```
+```php
 use Illuminate\Database\Eloquent\Model;
 use Autoklose\DataShipper\Traits\HasDataSubscribers;
 
@@ -133,7 +133,7 @@ class Record extends Model
 ### Transforming Data Before Shipping
 If you need to massage the data before it is handled by a subscriber you can make use of the transformData method on your model.
 
-```
+```php
 use Illuminate\Database\Eloquent\Model;
 use Autoklose\DataShipper\Traits\HasDataSubscribers;
 
