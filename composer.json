@@ -6,7 +6,7 @@
         "laravel",
         "laravel-data-shipper"
     ],
-    "homepage": "https://github.com/:vendor_slug/:package_slug",
+    "homepage": "https://github.com/autoklose/laravel-data-shipper",
     "license": "MIT",
     "authors": [
         {
@@ -62,10 +62,10 @@
     "extra": {
         "laravel": {
             "providers": [
-                "DataShipperServiceProvider"
+                "Autoklose\\DataShipper\\DataShipperServiceProvider"
             ],
             "aliases": {
-                "DataShipper": "DataShipper"
+                "DataShipper": "Autoklose\\DataShipper\\Facades\\DataShipper"
             }
         }
     },
