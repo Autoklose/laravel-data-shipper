@@ -13,6 +13,6 @@ class FailedShipment extends Model {
 
     public function packages()
     {
-        return $this->belongsToMany(FailedPackage::class);
+        return $this->hasMany(FailedPackage::class);
     }
 }

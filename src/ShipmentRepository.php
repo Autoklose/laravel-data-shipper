@@ -59,7 +59,7 @@ class ShipmentRepository {
 
         // Remove these jobs from the queue
         $count = array_pop($packages) - count($ids);
-        if ($count >= 1 && $count < $this->maxShipmentLength) {
+        if ($count > 0 && $count < $this->maxShipmentLength) {
             $this->connection()->pipeline(function ($pipe) use ($key) {
                 // Reset the timeout for the shipment
                 $this->updateShipmentManifest($pipe, $key);
@@ -117,14 +117,14 @@ class ShipmentRepository {
 
         $lock->block(10);
 
-        $packageIds = $this->connection()->zrange($key, 0, $length);
+        $packageIds = $this->connection()->zrange($key, 0, $length - 1);
 
         $results = $this->connection()->pipeline(function ($pipe) use ($key, $length, $packageIds) {
             foreach ($packageIds as $id) {
                 $pipe->hdel($id);
             }
 
-            $pipe->zrem(...$packageIds);
+            $pipe->zrem($key, ...$packageIds);
             $pipe->decrby("{$key}-shipment-length", count($packageIds));
         });
 
@@ -140,7 +140,7 @@ class ShipmentRepository {
 
         $lock->release();
 
-        return $count === $this->maxShipmentLength;
+        return $count >= $this->maxShipmentLength;
     }
 
     /**
@@ -174,6 +174,7 @@ class ShipmentRepository {
      */
     public function updateShipmentManifest($pipe, string $key, bool $now = false): void {
         $timestamp = !$now ? now()->addMinutes($this->minutesUntilShipment)->getPreciseTimestamp(4) : now()->getPreciseTimestamp(4);
+        $pipe->zrem("shipments", $key);
         $pipe->zadd("shipments", $timestamp, $key);
     }
 

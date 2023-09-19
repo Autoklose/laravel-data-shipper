@@ -29,7 +29,7 @@ class RetryFailedShipment implements ShouldQueue
         $this->failedShipment->increment('retries');
         $this->failedShipment->update(['last_retried_at' => now()]);
 
-        if ($this->failedShipment->retries >= 3) {
+        if ($this->failedShipment->retries >= (int)config('data-shipper.shipments.max_retries')) {
             return;
         }
 
@@ -42,5 +42,7 @@ class RetryFailedShipment implements ShouldQueue
         $subscriber = $subscribers[$this->failedShipment->subscriber];
 
         $subscriber->ship($preparedPackages);
+
+        $this->failedShipment->delete();
     }
 }

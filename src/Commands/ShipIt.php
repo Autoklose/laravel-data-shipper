@@ -7,6 +7,7 @@ use Autoklose\DataShipper\Jobs\DispatchShipmentToSubscriber;
 use Autoklose\DataShipper\Jobs\NotifySubscriberOfShipment;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Redis;
 
 class ShipIt extends Command
 {

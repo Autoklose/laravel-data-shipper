@@ -12,14 +12,14 @@ composer require autoklose/laravel-data-shipper
 You can publish and run the migrations with:
 
 ```bash
-php artisan vendor:publish --tag="data_shipper-migrations"
+php artisan vendor:publish --tag="data-shipper-migrations"
 php artisan migrate
 ```
 
 You can publish the config file with:
 
 ```bash
-php artisan vendor:publish --tag=":data_shipper-config"
+php artisan vendor:publish --tag="data-shipper-config"
 ```
 
 You can customize how often data shipments happen by changing the following values in the config file:
@@ -30,12 +30,20 @@ You can customize how often data shipments happen by changing the following valu
 ### max_wait_minutes
 - How many minutes should Data Shipper wait until shipping changes regardless of not yet reaching the max queue size.
 
+### max_shipments_per_minute
+- How many times a shipment can be handled per a minute.
+
+### max_retries
+- How many times a failed shipment can be retried before no longer being handled.
+
 ```php
 return [
     'subscribers' => ['elasticsearch'],
     'shipments' => [
         'max_size' => 10,
-        'max_wait_minutes' => 5
+        'max_wait_minutes' => 5,
+        'max_shipments_per_minute' => 10,
+        'max_retries' => 3
     ]
 ];
 ```
@@ -47,7 +55,7 @@ protected function schedule(Schedule $schedule)
 {
   // ...
 
-  $shedule->command('data-shipper:ship-it')->everyMinute();
+  $schedule->command('data-shipper:ship-it')->everyMinute();
 }
 ```
 
@@ -154,6 +162,44 @@ class Record extends Model
   }
 }
 ```
+
+## Available Data Subscribers
+
+### Elasticsearch
+Elasticsearch is available as the default data subscriber. In order to work with this subscriber, each class that is passed through Data Shipper must have an `elasticsearch_index` field that is publically available.
+
+It can be as simple as a public string property on your class.
+
+```php
+use Illuminate\Database\Eloquent\Model;
+use Autoklose\DataShipper\Traits\HasDataSubscribers;
+
+class Record extends Model
+{
+  use HasDataSubscribers;
+
+  public string $elasticsearch_index = 'record_index';
+}
+```
+
+Alternatively if you need to retrieve the index name programmatically we recommend making use of an attribute. Please note that you should not rely on class properties when creating the index attribute as the class will not have any data loaded.
+
+```php
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Autoklose\DataShipper\Traits\HasDataSubscribers;
+
+class Record extends Model
+{
+  use HasDataSubscribers;
+
+  public function elasticsearchIndex(): Attribute
+  {
+    return Attribute::make(get: fn() => config('elasticsearch.recordIndex'));
+  }
+}
+```
+
 
 ## Changelog
 

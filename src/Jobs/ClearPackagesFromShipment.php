@@ -9,6 +9,7 @@ use Illuminate\Contracts\Redis\Factory;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
 
 class ClearPackagesFromShipment implements ShouldQueue
 {
@@ -18,16 +19,25 @@ class ClearPackagesFromShipment implements ShouldQueue
 
     protected int $length;
 
-    public function __construct(string $shipment, int $length)
+    protected bool $limitHit;
+
+    public function __construct(string $shipment, int $length, bool $limitHit)
     {
         $this->shipment = $shipment;
         $this->length = $length;
+        $this->limitHit = $limitHit;
     }
 
     public function handle()
     {
-        $repository = new ShipmentRepository(app()->make(Factory::class));
+        $repository = new ShipmentRepository(app()->make(Factory::class), config('data-shipper.shipments.max_wait_minutes'), config('data-shipper.shipments.max_size'));
 
-        $repository->flushPackagesForShipment($this->shipment, $this->length);
+        $canShipAgain = $repository->flushPackagesForShipment($this->shipment, $this->length);
+
+        Cache::lock("data-shipper-{$this->shipment}-active-lock")->forceRelease();
+
+        if ($canShipAgain) {
+            NotifySubscriberOfShipment::dispatch($this->shipment, true);
+        }
     }
 }

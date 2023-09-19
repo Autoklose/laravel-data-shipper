@@ -14,10 +14,9 @@ class RetryFailedShipments extends Command
 
     public function handle()
     {
-        $threshold = now()->subMinutes(15);
+        $maxRetries = config('data-shipper.shipments.max_retries');
 
-        FailedShipment::where(fn($query) => $query->whereNull('last_retried_at')->orWhere('last_retried_at', '<=', $threshold))
-            ->where('retries', '<', 3)->chunk(250, function($failedShipments) {
+        FailedShipment::where('retries', '<', $maxRetries)->chunk(250, function($failedShipments) {
                 foreach ($failedShipments as $failedShipment) {
                     RetryFailedShipment::dispatch($failedShipment);
                 }

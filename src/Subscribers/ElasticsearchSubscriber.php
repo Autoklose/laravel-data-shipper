@@ -8,13 +8,10 @@ use Elasticsearch\Client;
 use Elasticsearch\Common\Exceptions\Conflict409Exception;
 
 class ElasticsearchSubscriber implements DataSubscriberInterface {
-    protected $app;
     protected $retries;
 
-    public function __construct($app)
+    public function __construct()
     {
-        $this->app = $app;
-
         $this->retries = config('data-shipper.subscribers.elasticsearch.retires', 3);
     }
 
@@ -44,7 +41,7 @@ class ElasticsearchSubscriber implements DataSubscriberInterface {
         }
 
         /** @var Client $client */
-        $client = $this->app->make(Client::class);
+        $client = app()->make(Client::class);
 
         $retries = $this->retries;
 

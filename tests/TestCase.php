@@ -9,27 +9,28 @@ use Illuminate\Support\Facades\DB;
 use Orchestra\Testbench\TestCase as Orchestra;
 use MailerLite\LaravelElasticsearch\ServiceProvider;
 
-class TestCase extends Orchestra
-{
-    protected function setUp(): void
-    {
+class TestCase extends Orchestra {
+    protected function setUp(): void {
         parent::setUp();
 
         Factory::guessFactoryNamesUsing(
-            fn (string $modelName) => 'Autoklose\\DataShipper\\Database\\Factories\\'.class_basename($modelName).'Factory'
+            fn(string $modelName) => 'Autoklose\\DataShipper\\Database\\Factories\\'.class_basename($modelName).'Factory'
         );
     }
 
-    protected function getPackageProviders($app)
-    {
+    protected function getPackageProviders($app) {
         return [
             ServiceProvider::class,
             DataShipperServiceProvider::class
         ];
     }
 
-    public function getEnvironmentSetUp($app)
-    {
+    public function getEnvironmentSetUp($app) {
+        config()->set('queue.default', 'sync');
+        config()->set('queue.connections',
+            ['sync' => [
+                'driver' => 'sync',
+            ]]);
         config()->set('database.connections.testing', [
             "driver" => "mysql",
             "url" => null,
@@ -49,17 +50,23 @@ class TestCase extends Orchestra
         ]);
         config()->set('database.default', 'testing');
 
-        $result = DB::statement("DROP TABLE IF EXISTS test_models;");
+        DB::statement("DROP TABLE IF EXISTS test_models;");
+        DB::statement("DROP TABLE IF EXISTS failed_packages;");
+        DB::statement("DROP TABLE IF EXISTS failed_shipments;");
 
         $migration = include __DIR__.'/Migrations/create_test_model_table.php.stub';
         $migration->up();
+        $migration = include __DIR__.'/../database/migrations/create_failed_shipments_table.php.stub';
+        $migration->up();
+        $migration = include __DIR__.'/../database/migrations/create_failed_packages_table.php.stub';
+        $migration->up();
+
 
         $this->setupElasticSearch($app);
         $this->setupRedis($app);
     }
 
-    public function setupRedis($app)
-    {
+    public function setupRedis($app) {
         config()->set('database.redis', [
             'client' => env('REDIS_CLIENT', 'phpredis'),
 
@@ -75,58 +82,56 @@ class TestCase extends Orchestra
         $redisClient->connection('data-shipper')->flushDb();
     }
 
-    public function setupElasticSearch($app)
-    {
+    public function setupElasticSearch($app) {
         config()->set('elasticsearch', [
-        'defaultConnection' => 'default',
-        'connections' => [
+            'defaultConnection' => 'default',
+            'connections' => [
 
-        'default' => [
-            'hosts' => [
-                env('ELASTICSEARCH_HOST_CONFIG1', 'elasticsearch:9200'),
-            ],
-            'sslVerification' => null,
-            'logging' => false,
-            'logPath' => storage_path('logs/elasticsearch.log'),
-            'logLevel' => 'info',
-            'retries' => null,
-            'sniffOnStart' => false,
-            'httpHandler' => null,
-            'connectionPool' => null,
-            'connectionSelector' => null,
-            'serializer' => null,
-            'connectionFactory' => null,
-            'endpoint' => null,
-        ],
-        'logger' => [
-            'hosts' => [
-                env('ELASTICSEARCH_LOG_HOST', '192.168.221.8:9200'),
-            ],
-            'sslVerification' => null,
-            'logging' => false,
-            'logPath' => storage_path('logs/elasticsearch.log'),
-            'logLevel' => 'info',
-            'retries' => null,
-            'sniffOnStart' => false,
-            'httpHandler' => null,
-            'connectionPool' => null,
-            'connectionSelector' => null,
-            'serializer' => null,
-            'connectionFactory' => null,
-            'endpoint' => null,
-        ],
-        'readonly' => [
-            'hosts' => [
-                env('ELASTICSEARCH_HOST_CONFIG_READ', 'elasticsearch:9200'),
-            ],
-        ]
-        ]]);
+                'default' => [
+                    'hosts' => [
+                        env('ELASTICSEARCH_HOST_CONFIG1', 'elasticsearch:9200'),
+                    ],
+                    'sslVerification' => null,
+                    'logging' => false,
+                    'logPath' => storage_path('logs/elasticsearch.log'),
+                    'logLevel' => 'info',
+                    'retries' => null,
+                    'sniffOnStart' => false,
+                    'httpHandler' => null,
+                    'connectionPool' => null,
+                    'connectionSelector' => null,
+                    'serializer' => null,
+                    'connectionFactory' => null,
+                    'endpoint' => null,
+                ],
+                'logger' => [
+                    'hosts' => [
+                        env('ELASTICSEARCH_LOG_HOST', '192.168.221.8:9200'),
+                    ],
+                    'sslVerification' => null,
+                    'logging' => false,
+                    'logPath' => storage_path('logs/elasticsearch.log'),
+                    'logLevel' => 'info',
+                    'retries' => null,
+                    'sniffOnStart' => false,
+                    'httpHandler' => null,
+                    'connectionPool' => null,
+                    'connectionSelector' => null,
+                    'serializer' => null,
+                    'connectionFactory' => null,
+                    'endpoint' => null,
+                ],
+                'readonly' => [
+                    'hosts' => [
+                        env('ELASTICSEARCH_HOST_CONFIG_READ', 'elasticsearch:9200'),
+                    ],
+                ]
+            ]]);
 
         $this->recreateIndex();
     }
 
-    public function recreateIndex()
-    {
+    public function recreateIndex() {
         /** @var Client $client */
         $client = app()->make(Client::class);
 

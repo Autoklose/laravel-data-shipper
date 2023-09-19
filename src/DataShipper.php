@@ -170,7 +170,7 @@ class DataShipper {
 
     protected function resolveSubscriber($subscriber): DataSubscriberInterface {
         if ($subscriber === 'elasticsearch') {
-            return new ElasticsearchSubscriber($this->app);
+            return app()->make(ElasticsearchSubscriber::class);
         }
 
         throw new InvalidArgumentException("No resolver exists for $subscriber data source.");

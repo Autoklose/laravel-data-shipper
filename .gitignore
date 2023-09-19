@@ -6,6 +6,7 @@ yarn-error.log
 .idea/
 phpstan-baseline.neon
 phpstan.neon.dist
+build/
 
 # Laravel 4 specific
 bootstrap/compiled.php

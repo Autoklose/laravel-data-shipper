@@ -8,13 +8,13 @@ return new class extends Migration
 {
     public function up()
     {
-        Schema::create('failed_shipments', function (Blueprint $table) {
+        Schema::create('failed_packages', function (Blueprint $table) {
             $table->id();
             $table->string('model_id');
             $table->json('payload');
 
             $table->unsignedBigInteger('failed_shipment_id');
-            $table->foreign('failed_shipment')->references('id')->on('failed_shipments');
+            $table->foreign('failed_shipment_id')->references('id')->on('failed_shipments')->cascadeOnDelete();
 
             $table->timestamps();
         });
