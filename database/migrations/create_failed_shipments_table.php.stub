@@ -11,9 +11,8 @@ return new class extends Migration
         Schema::create('failed_shipments', function (Blueprint $table) {
             $table->id();
             $table->string('class_name');
-            $table->string('shipment');
             $table->string('subscriber');
-            $table->timestamp('last_retried_at');
+            $table->timestamp('last_retried_at')->nullable();
             $table->unsignedInteger('retries')->default(0);
 
             $table->timestamps();

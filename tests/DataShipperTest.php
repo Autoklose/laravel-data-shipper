@@ -186,7 +186,6 @@ it('will not process a shipment while another is in progress', function($changes
 it('will not retry a shipment that has reached max retries', function() {
     \Autoklose\DataShipper\Models\FailedShipment::create([
         'class_name' => 'Test',
-        'shipment' => 'TestKey',
         'subscriber' => 'elasticsearch',
         'last_retried_at' => now()->subHour(),
         'retries' => config('data-shipper.shipments.max_retries')
@@ -203,7 +202,6 @@ it('will not retry a shipment that has reached max retries', function() {
 it('will retry shipments if they have not already been retried too many times', function() {
     \Autoklose\DataShipper\Models\FailedShipment::create([
         'class_name' => 'Test',
-        'shipment' => 'TestKey',
         'subscriber' => 'elasticsearch',
         'last_retried_at' => now()->subHour(),
     ]);
@@ -219,7 +217,6 @@ it('will retry shipments if they have not already been retried too many times', 
 it('will resubmit packages to be retried', function($changes) {
     $failedShipment = \Autoklose\DataShipper\Models\FailedShipment::create([
         'class_name' => 'Test',
-        'shipment' => 'TestKey',
         'subscriber' => 'elasticsearch',
         'last_retried_at' => now()->subHour(),
     ]);
@@ -237,6 +234,27 @@ it('will resubmit packages to be retried', function($changes) {
     $retryFailedShipment->handle();
 
     \Pest\Laravel\assertDatabaseMissing('failed_shipments', ['id' => $failedShipment->id]);
+})->with('bulk-changes');
+
+it('can store failed shipments', function($changes) {
+    \Autoklose\DataShipper\Models\FailedShipment::query()->delete();
+
+    \Pest\Laravel\partialMock(\Autoklose\DataShipper\Subscribers\ElasticsearchSubscriber::class, function(\Mockery\MockInterface $mock) {
+        $mock->expects('ship')->andReturnUsing(fn(...$args) => throw new Exception("Fear not. This is just a test."));
+    });
+
+    $key = \Autoklose\DataShipper\Tests\Models\TestModel::class;
+    DataShipper::pushMany($key, $changes, 'id');
+
+    $command = new \Autoklose\DataShipper\Commands\ShipIt();
+    $command->handle();
+
+    /** @var \Autoklose\DataShipper\ShipmentRepository $repository */
+    $repository = app()->make(\Autoklose\DataShipper\ShipmentRepository::class);
+    expect($repository->getShipmentLength($key))->toEqual(0);
+
+    \Pest\Laravel\assertDatabaseCount('failed_shipments', 1);
+    \Pest\Laravel\assertDatabaseCount('failed_packages', 10);
 })->with('bulk-changes');
 
 dataset('test-models', [

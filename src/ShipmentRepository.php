@@ -57,7 +57,6 @@ class ShipmentRepository {
             $pipe->get("{$key}-shipment-length");
         });
 
-        // Remove these jobs from the queue
         $count = array_pop($packages) - count($ids);
         if ($count > 0 && $count < $this->maxShipmentLength) {
             $this->connection()->pipeline(function ($pipe) use ($key) {

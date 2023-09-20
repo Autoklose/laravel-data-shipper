@@ -122,7 +122,7 @@ class DataShipper {
     public function handleProblematicShipment(string $subscriber, string $shipment, array $packageIds): void {
         // We failed to push this dataset as an update for one or more subscribers.
         // Offload it to a table for retrying.
-        $packages = $this->repository->getPackagesByUuids($shipment, $packageIds);
+        $packages = $this->repository->getPackagesByUuids($packageIds, $shipment);
 
         $failedShipment = FailedShipment::create([
             'class_name' => $shipment,

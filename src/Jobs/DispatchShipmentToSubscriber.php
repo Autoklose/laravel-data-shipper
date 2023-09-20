@@ -37,7 +37,7 @@ class DispatchShipmentToSubscriber implements ShouldQueue {
             $packages = $repository->getPackagesByUuids($this->packageIds, $this->shipment);
             $subscriber->ship($packages);
         } catch (\Exception) {
-            DataShipper::handleProblematicShipment($this->shipment);
+            DataShipper::handleProblematicShipment($this->subscriber, $this->shipment, $this->packageIds);
         }
     }
 }
