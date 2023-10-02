@@ -116,30 +116,45 @@ class ShipmentRepository {
 
         $lock->block(10);
 
-        $packageIds = $this->connection()->zrange($key, 0, $length - 1);
+        if ($length > 0) {
+            $packageIds = $this->connection()->zrange($key, 0, $length - 1);
 
-        $results = $this->connection()->pipeline(function ($pipe) use ($key, $length, $packageIds) {
-            foreach ($packageIds as $id) {
-                $pipe->hdel($id);
-            }
+            $results = $this->connection()->pipeline(function ($pipe) use ($key, $length, $packageIds) {
+                foreach ($packageIds as $id) {
+                    $pipe->hdel($id);
+                }
 
-            $pipe->zrem($key, ...$packageIds);
-            $pipe->decrby("{$key}-shipment-length", count($packageIds));
-        });
+                $pipe->zrem($key, ...$packageIds);
+                $pipe->decrby("{$key}-shipment-length", count($packageIds));
+            });
 
-        $count = array_pop($results);
+            $count = array_pop($results);
+        } else {
+            $count = $this->connection()->get("{$key}-shipment-length") ?? 0;
+        }
 
         // If there are no shipments left, we can remove this shipment record, so we don't keep checking to push changes
         if ($count < 1) {
-            $this->connection()->pipeline(function ($pipe) use ($key) {
-                $pipe->del($key);
-                $pipe->del("{$key}-shipment-length");
-            });
+            $this->wipeShipmentRecord($key);
         }
 
         $lock->release();
 
         return $count >= $this->maxShipmentLength;
+    }
+
+    /**
+     * Remove the shipment from the list of shipments
+     *
+     * @param $key
+     * @return void
+     */
+    public function wipeShipmentRecord($key)
+    {
+        $this->connection()->pipeline(function ($pipe) use ($key) {
+            $pipe->zrem('shipments', $key);
+            $pipe->del("{$key}-shipment-length");
+        });
     }
 
     /**

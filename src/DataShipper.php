@@ -42,6 +42,8 @@ class DataShipper {
 
         /** @var Model $class */
         $class = new $className();
+        // Get absolute class name
+        $className = (new \ReflectionClass(new $className()))->getName();
 
         $identifierKey = $identifierKey ?? $class->getKeyName();
         $ids = array_column($changes, $identifierKey);
@@ -79,6 +81,9 @@ class DataShipper {
         if (!in_array(HasDataSubscribers::class, class_uses_recursive($className))) {
             throw new \Exception("Provided model does not use the HasDataSubscribers trait");
         }
+
+        // Get absolute class name
+        $className = (new \ReflectionClass(new $className()))->getName();
 
         if ($changes instanceof Collection) {
             $changes = $changes->toArray();

@@ -36,20 +36,20 @@ class NotifySubscriberOfShipment implements ShouldQueue {
         }
 
         $limitHit = false;
-        $lastShipment = Redis::connection('data-shipper')->zscore("data-shipper-records", $this->shipment);
+        $lastShipment = Redis::connection('data-shipper')->zscore("records", $this->shipment);
 
         if (!$lastShipment || Carbon::createFromTimestamp($lastShipment)->isBefore(now()->startOfMinute())) {
             // New throttle setup
             $timestamp = now()->timestamp;
             Redis::connection('data-shipper')->pipeline(function ($pipe) use($timestamp) {
-                $pipe->zadd("data-shipper-records", $timestamp, $this->shipment);
-                $pipe->expire("data-shipper-records", 60);
-                $pipe->del("data-shipper-{$this->shipment}-per-minute");
-                $pipe->incr("data-shipper-{$this->shipment}-per-minute");
-                $pipe->expire("data-shipper-{$this->shipment}-per-minute", 60);
+                $pipe->zadd("records", $timestamp, $this->shipment);
+                $pipe->expire("records", 60);
+                $pipe->del("{$this->shipment}-per-minute");
+                $pipe->incr("{$this->shipment}-per-minute");
+                $pipe->expire("{$this->shipment}-per-minute", 60);
             });
         } else {
-            $handledThisMinute = Redis::connection('data-shipper')->incr("data-shipper-{$this->shipment}-per-minute");
+            $handledThisMinute = Redis::connection('data-shipper')->incr("{$this->shipment}-per-minute");
             if ($handledThisMinute > $this->maxShipmentsPerMinute) {
                 return;
             }
@@ -61,8 +61,10 @@ class NotifySubscriberOfShipment implements ShouldQueue {
         $packageIds = DataShipper::getPackagesForShipment($this->shipment, true);
 
         $jobs = [];
-        foreach ($subscribers as $subscriberName => $subscriber) {
-            $jobs[] = new DispatchShipmentToSubscriber($this->shipment, $packageIds, $subscriberName);
+        if (!empty($packageIds)) {
+            foreach ($subscribers as $subscriberName => $subscriber) {
+                $jobs[] = new DispatchShipmentToSubscriber($this->shipment, $packageIds, $subscriberName);
+            }
         }
 
         $jobs[] = new ClearPackagesFromShipment($this->shipment, count($packageIds), $limitHit);
