@@ -112,16 +112,16 @@ class ShipmentRepository {
      * @return bool
      */
     public function flushPackagesForShipment(string $key, int $length): bool {
-        $lock = Cache::lock("$key-data-shipper-lock");
+        $lock = Cache::lock("$key-data-shipper-lock", 10);
 
-        $lock->block(10);
+        $lock->block(15);
 
         if ($length > 0) {
             $packageIds = $this->connection()->zrange($key, 0, $length - 1);
 
             $results = $this->connection()->pipeline(function ($pipe) use ($key, $length, $packageIds) {
                 foreach ($packageIds as $id) {
-                    $pipe->hdel($id);
+                    $pipe->del($id);
                 }
 
                 $pipe->zrem($key, ...$packageIds);
@@ -208,8 +208,8 @@ class ShipmentRepository {
         }
 
         // Make sure a flush isn't happening at this time
-        $lock = Cache::lock("{$className}-data-shipper-lock");
-        $lock->block(10);
+        $lock = Cache::lock("{$className}-data-shipper-lock", 10);
+        $lock->block(15);
 
         $currentShipmentSize = $this->connection()->incrby("{$className}-shipment-length", count($packages));
 

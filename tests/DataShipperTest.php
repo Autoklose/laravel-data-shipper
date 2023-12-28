@@ -257,6 +257,23 @@ it('can store failed shipments', function($changes) {
     \Pest\Laravel\assertDatabaseCount('failed_packages', 10);
 })->with('bulk-changes');
 
+it('clears all redis keys', function($changes) {
+    $key = \Autoklose\DataShipper\Tests\Models\TestModel::class;
+    DataShipper::pushMany($key, $changes, 'id');
+
+    // At this point we have our shipment length key, shipments key, and our TestModel key + the packages
+    $keys = \Illuminate\Support\Facades\Redis::connection('data-shipper')->keys("*");
+    \PHPUnit\Framework\assertCount(3 + count($changes), $keys);
+
+    $command = new \Autoklose\DataShipper\Commands\ShipIt();
+    $command->handle();
+
+    // At this point we no longer have the shipment length, shipments or TestModel key since the packages are processed and no more are enqueued
+    // But we do have the 2 keys created by the ShipIt command that will expire after one minute.
+    $keys = \Illuminate\Support\Facades\Redis::connection('data-shipper')->keys("*");
+    \PHPUnit\Framework\assertCount(2, $keys);
+})->with('bulk-changes');
+
 dataset('test-models', [
     [fn() => \Autoklose\DataShipper\Tests\Models\TestModel::create([
         'string_field' => 'some string',
