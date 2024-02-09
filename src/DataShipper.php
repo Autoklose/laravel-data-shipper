@@ -77,7 +77,7 @@ class DataShipper {
      * @return void
      * @throws \Exception
      */
-    public function push(string $className, array|Collection $changes, $identifier, string $mode = Package::MODE_UPDATE): void {
+    public function push(string $className, array|Collection $changes, mixed $identifier, string $mode = Package::MODE_UPDATE): void {
         if (!in_array(HasDataSubscribers::class, class_uses_recursive($className))) {
             throw new \Exception("Provided model does not use the HasDataSubscribers trait");
         }

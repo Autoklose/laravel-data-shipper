@@ -31,7 +31,7 @@ class ShipmentRepository {
      * @var array
      */
     public array $keys = [
-        'id', 'uuid', 'table', 'payload', 'class_name', 'mode'
+        'id', 'uuid', 'payload', 'class_name', 'mode'
     ];
 
     public function __construct(RedisFactory $redis, int $minutesUntilShipment = 5, int $maxShipmentLength = 10) {
@@ -196,11 +196,10 @@ class ShipmentRepository {
      * Push a package into a shipment container
      *
      * @param  PackageInterface|PackageInterface[]  $packages
-     * @param  Model  $model
+     * @param  object  $model
      * @return void
      */
-    public function push(array|PackageInterface $packages, Model $model): void {
-        $table = $model->getTable();
+    public function push(array|PackageInterface $packages, object $model): void {
         $className = get_class($model);
 
         if (!(is_array($packages))) {
@@ -215,7 +214,7 @@ class ShipmentRepository {
 
         $lock->release();
 
-        $this->connection()->pipeline(function ($pipe) use ($packages, $table, $className, $currentShipmentSize) {
+        $this->connection()->pipeline(function ($pipe) use ($packages, $className, $currentShipmentSize) {
 
             if ($currentShipmentSize === count($packages) && $currentShipmentSize < $this->maxShipmentLength) {
                 // Record the shipment and
@@ -231,7 +230,6 @@ class ShipmentRepository {
                 $pipe->hmset($package->uuid(), [
                     'id' => $package->id(),
                     'uuid' => $package->uuid(),
-                    'table' => $table,
                     'class_name' => $package->className(),
                     'payload' => $package->pack(),
                     'mode' => $package->mode(),
